@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Box, Typography, IconButton, Grid } from "@mui/material";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
 import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutline";
@@ -37,10 +37,14 @@ const commercialTabs: TabItem[] = [
 ];
 
 const Product: React.FC = () => {
-  const [category, setCategory] = useState<"passenger" | "commercial">("passenger");
+  const [category, setCategory] = useState<"passenger" | "commercial">(
+    "passenger"
+  );
   const [selectedTab, setSelectedTab] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const lastScrollY = useRef<number>(0);
 
   const tabs = category === "passenger" ? passengerTabs : commercialTabs;
   const selectedVideo = tabs[selectedTab]?.video;
@@ -75,66 +79,254 @@ const Product: React.FC = () => {
     setIsPlaying(true);
   };
 
+  
+  useEffect(() => {
+    let scrollAttempts = 0;
+    let lastDirection: "up" | "down" | null = null;
+    let timeout: NodeJS.Timeout | null = null;
+
+    const handleScroll = (e: WheelEvent) => {
+      if (!sectionRef.current) return;
+
+      const rect = sectionRef.current.getBoundingClientRect();
+      const inView =
+        rect.top <= window.innerHeight * 0.5 &&
+        rect.bottom >= window.innerHeight * 0.5;
+
+      if (inView) {
+        const direction = e.deltaY > 0 ? "down" : "up";
+
+        // reset if user changes direction
+        if (direction !== lastDirection) {
+          scrollAttempts = 0;
+        }
+        lastDirection = direction;
+        scrollAttempts += 1;
+
+        if (scrollAttempts >= 3) {
+          if (direction === "down" && category === "passenger") {
+            handleCategoryChange("commercial");
+          } else if (direction === "up" && category === "commercial") {
+            handleCategoryChange("passenger");
+          }
+          scrollAttempts = 0; 
+        }
+
+        if (timeout) clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          scrollAttempts = 0;
+        }, 1000);
+      }
+    };
+
+    window.addEventListener("wheel", handleScroll, { passive: true });
+    return () => {
+      if (timeout) clearTimeout(timeout);
+      window.removeEventListener("wheel", handleScroll);
+    };
+  }, [category]);
+
   return (
-    <Box sx={{ backgroundColor: "black", color: "white", minHeight: {xs: "80vh", md: "100vh"}, p: { xs: 4, md: 5 } }}>
-      
+    <Box
+      ref={sectionRef}
+      sx={{
+        backgroundColor: "black",
+        color: "white",
+        minHeight: { xs: "80vh", md: "100vh" },
+        p: { xs: 4, md: 5 },
+      }}
+    >
       {/* Heading */}
-      <Typography variant="h3" sx={{ textAlign: "center", mb: 5, fontWeight: "bold", fontSize: { xs: "28px", md: "40px" }, fontFamily: ' "Poppins", sans-serif'}} >
-        Evolving the drive with <span style={{ color: "#ffffffcc" }}>360-degree</span> comprehensive solutions
+      <Typography
+        variant="h3"
+        sx={{
+          textAlign: "center",
+          mb: 5,
+          fontWeight: "bold",
+          fontSize: { xs: "28px", md: "40px" },
+          fontFamily: ' "Poppins", sans-serif',
+        }}
+      >
+        Evolving the drive with{" "}
+        <span style={{ color: "#ffffffcc" }}>360-degree</span> comprehensive
+        solutions
       </Typography>
 
       <Grid container spacing={5} alignItems="center">
-        
         {/* Left Section - Category */}
         <Grid item xs={12} md={3} sx={{ position: "relative" }}>
           {/* Vertical Line */}
-          <Box sx={{ position: "absolute", top: 0, bottom: 0, left: '50px', width: "2px", backgroundColor: "#555",}}>
-            <Box sx={{ height: "50%", backgroundColor: category === "passenger" ? "#fff" : "#555", transition: "background-color 0.3s"}} />
-            <Box sx={{ height: "50%", backgroundColor: category === "commercial" ? "#fff" : "#555", transition: "background-color 0.3s", }} />
+          <Box
+            sx={{
+              position: "absolute",
+              top: 0,
+              bottom: 0,
+              left: "50px",
+              width: "2px",
+              backgroundColor: "#555",
+            }}
+          >
+            <Box
+              sx={{
+                height: "50%",
+                backgroundColor: category === "passenger" ? "#fff" : "#555",
+                transition: "background-color 0.3s",
+              }}
+            />
+            <Box
+              sx={{
+                height: "50%",
+                backgroundColor: category === "commercial" ? "#fff" : "#555",
+                transition: "background-color 0.3s",
+              }}
+            />
           </Box>
           {/* Categories */}
           <Box sx={{ pl: 5, display: "flex", flexDirection: "column", gap: 5 }}>
-            <Box onClick={() => handleCategoryChange("passenger")} sx={{ cursor: "pointer" }}>
-              <Typography variant="h5" sx={{ fontWeight: category === "passenger" ? "bold" : "normal", color: category === "passenger" ? "white" : "gray", mb: 1, fontFamily: ' "Poppins", sans-serif', }}> Passenger vehicles </Typography>
-              <Typography variant="body2" sx={{ fontSize: "14px", color: category === "passenger" ? "white" : "gray", fontFamily: ' "Poppins", sans-serif',}}>
+            <Box
+              onClick={() => handleCategoryChange("passenger")}
+              sx={{ cursor: "pointer" }}
+            >
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: category === "passenger" ? "bold" : "normal",
+                  color: category === "passenger" ? "white" : "gray",
+                  mb: 1,
+                  fontFamily: ' "Poppins", sans-serif',
+                }}
+              >
+                Passenger vehicles
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontSize: "14px",
+                  color: category === "passenger" ? "white" : "gray",
+                  fontFamily: ' "Poppins", sans-serif',
+                }}
+              >
                 Revving up innovation from interior to exterior.
               </Typography>
             </Box>
-            <Box onClick={() => handleCategoryChange("commercial")} sx={{ cursor: "pointer" }}>
-              <Typography variant="h5" sx={{ fontWeight: category === "commercial" ? "bold" : "normal", color: category === "commercial" ? "white" : "gray", mb: 1, fontFamily: ' "Poppins", sans-serif', }}>
+            <Box
+              onClick={() => handleCategoryChange("commercial")}
+              sx={{ cursor: "pointer" }}
+            >
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: category === "commercial" ? "bold" : "normal",
+                  color: category === "commercial" ? "white" : "gray",
+                  mb: 1,
+                  fontFamily: ' "Poppins", sans-serif',
+                }}
+              >
                 Commercial vehicles
               </Typography>
-              <Typography variant="body2" sx={{ fontFamily: ' "Poppins", sans-serif', fontSize: "14px", color: category === "commercial" ? "white" : "gray", }} >
+              <Typography
+                variant="body2"
+                sx={{
+                  fontFamily: ' "Poppins", sans-serif',
+                  fontSize: "14px",
+                  color: category === "commercial" ? "white" : "gray",
+                }}
+              >
                 Advancing engineering for heavy-duty vehicles.
               </Typography>
             </Box>
           </Box>
         </Grid>
 
-
         {/* Right Section - Video */}
         <Grid item xs={12} md={9}>
-          <Box sx={{ position: "relative", display: "flex", justifyContent: "center", height: {sm: '500px', md: '600px'}}}>
-            <video ref={videoRef} key={selectedVideo} autoPlay muted playsInline loop width="100%" style={{ borderRadius: "12px", maxHeight: "600px", objectFit: "contain" }}>
+          <Box
+            sx={{
+              position: "relative",
+              display: "flex",
+              justifyContent: "center",
+              height: { sm: "500px", md: "600px" },
+            }}
+          >
+            <video
+              ref={videoRef}
+              key={selectedVideo}
+              autoPlay
+              muted
+              playsInline
+              loop
+              width="100%"
+              style={{
+                borderRadius: "12px",
+                maxHeight: "600px",
+                objectFit: "contain",
+              }}
+            >
               <source src={selectedVideo} type="video/mp4" />
               Your browser does not support the video tag.
             </video>
           </Box>
 
           {/* Bottom Tabs */}
-          <Box sx={{ display: "flex", justifyContent: "center", gap: 5, mt: -2, flexWrap: "wrap", }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              gap: 5,
+              mt: -2,
+              flexWrap: "wrap",
+            }}
+          >
             {tabs.map((tab, index) => (
-              <Box key={tab.id} onClick={() => handleTabChange(index)} sx={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer", opacity: selectedTab === index ? 1 : 0.5, transition: "0.3s", }} >
-                <img src={tab.icon} alt={tab.label} style={{ width: "50px", height: "50px", objectFit: "contain", marginBottom: "10px" }}/>
+              <Box
+                key={tab.id}
+                onClick={() => handleTabChange(index)}
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  cursor: "pointer",
+                  opacity: selectedTab === index ? 1 : 0.5,
+                  transition: "0.3s",
+                }}
+              >
+                <img
+                  src={tab.icon}
+                  alt={tab.label}
+                  style={{
+                    width: "50px",
+                    height: "50px",
+                    objectFit: "contain",
+                    marginBottom: "10px",
+                  }}
+                />
                 <Typography variant="body2">{tab.label}</Typography>
               </Box>
             ))}
           </Box>
 
           {/* Play/Pause Button */}
-          <Box sx={{position: 'relative'}}>
-            <IconButton onClick={togglePlayPause} sx={{position: 'absolute', right: '50px', bottom: '5px',border: '3px solid #fff', color: "#fff", width: "60px", height: "60px", "&:hover": { backgroundColor: "#000" }, borderRadius: "50%", display: {xs: 'none', md: 'flex'}}}>
-              {isPlaying ? <PauseCircleOutlineIcon fontSize="large" /> : <PlayCircleOutlineIcon fontSize="large" />}
+          <Box sx={{ position: "relative" }}>
+            <IconButton
+              onClick={togglePlayPause}
+              sx={{
+                position: "absolute",
+                right: "50px",
+                bottom: "5px",
+                border: "3px solid #fff",
+                color: "#fff",
+                width: "60px",
+                height: "60px",
+                "&:hover": { backgroundColor: "#000" },
+                borderRadius: "50%",
+                display: { xs: "none", md: "flex" },
+              }}
+            >
+              {isPlaying ? (
+                <PauseCircleOutlineIcon fontSize="large" />
+              ) : (
+                <PlayCircleOutlineIcon fontSize="large" />
+              )}
             </IconButton>
           </Box>
         </Grid>
